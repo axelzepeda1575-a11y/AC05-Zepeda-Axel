@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neón Maze — Juego AC05</title>
+<style>
+:root{--bg:#090d1c;--panel:#111a31;--cyan:#48e5ff;--pink:#ff4f9a;--gold:#ffd166;--text:#f4f7ff;--muted:#9eaccb}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% 0%,#1b2850 0,#090d1c 58%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif;display:flex;justify-content:center;padding:22px}
+main{width:min(100%,850px)}
+header{text-align:center;margin-bottom:16px}
+.kicker{color:var(--cyan);font-size:.76rem;letter-spacing:.22em;font-weight:800;text-transform:uppercase}
+h1{font-size:clamp(2rem,6vw,3.5rem);line-height:1;margin:8px 0;background:linear-gradient(90deg,var(--cyan),#fff,var(--pink));background-clip:text;color:transparent}
+.sub{color:var(--muted);margin:0}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:14px;align-items:start}
+.gamebox,.side{background:linear-gradient(145deg,rgba(20,31,59,.96),rgba(10,16,34,.98));border:1px solid #2b3a63;border-radius:18px;box-shadow:0 18px 55px #0007}
+.gamebox{padding:12px;position:relative}
+canvas{display:block;width:100%;height:auto;border-radius:10px;background:#070b19;image-rendering:pixelated}
+.overlay{position:absolute;inset:12px;display:flex;align-items:center;justify-content:center;text-align:center;background:#070b19dd;border-radius:10px;padding:22px}
+.overlay[hidden]{display:none}
+.overlay-card{max-width:390px}
+.overlay h2{font-size:2rem;margin:0 0 8px;color:var(--cyan)}
+.overlay p{color:#c2cde7;line-height:1.5}
+button{border:0;border-radius:11px;padding:11px 16px;font-weight:800;cursor:pointer;background:linear-gradient(100deg,var(--cyan),#9af4ff);color:#07101f;box-shadow:0 5px 18px #48e5ff33}
+button:hover{filter:brightness(1.08);transform:translateY(-1px)}
+button.secondary{background:#263657;color:#eaf2ff;box-shadow:none;border:1px solid #40547d}
+.side{padding:16px}
+.stat{padding:12px 0;border-bottom:1px solid #293657}
+.stat:first-child{padding-top:0}
+.label{font-size:.7rem;color:var(--muted);letter-spacing:.13em;text-transform:uppercase;font-weight:800}
+.value{font-size:1.55rem;font-weight:850;margin-top:2px}
+#lives{color:var(--pink);letter-spacing:.12em}
+.rules{font-size:.88rem;color:#c1cbe2;line-height:1.5;margin-top:14px}
+.rules b{color:var(--cyan)}
+.actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.actions button{flex:1}
+.mobile-controls{display:none;grid-template-columns:repeat(3,54px);grid-template-rows:repeat(2,48px);gap:5px;justify-content:center;margin:14px auto 0}
+.mobile-controls button{padding:0;border-radius:10px;font-size:1.15rem}
+.mobile-controls button:nth-child(1){grid-column:2;grid-row:1}
+.mobile-controls button:nth-child(2){grid-column:1;grid-row:2}
+.mobile-controls button:nth-child(3){grid-column:2;grid-row:2}
+.mobile-controls button:nth-child(4){grid-column:3;grid-row:2}
+footer{text-align:center;color:#7483a7;font-size:.76rem;margin-top:15px}
+@media(max-width:680px){body{padding:14px}.layout{grid-template-columns:1fr}.side{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px}.stat{border:0;padding:4px;text-align:center}.rules,.actions{grid-column:1/-1}.mobile-controls{display:grid}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="kicker">Actividad AC05 · Módulo 1</div>
+<h1>NEÓN MAZE</h1>
+<p class="sub">Un laberinto arcade creado con IA generativa y personalizado.</p>
+</header>
+<div class="layout">
+<section class="gamebox" aria-label="Área del videojuego">
+<canvas id="game" width="630" height="510" aria-label="Laberinto de videojuego"></canvas>
+<div class="overlay" id="overlay">
+<div class="overlay-card">
+<h2 id="overlayTitle">¿Listo para jugar?</h2>
+<p id="overlayText">Recoge todos los cristales, evita a los drones y consigue puntos. Los orbes especiales te dan unos segundos de ventaja.</p>
+<button id="startBtn">COMENZAR</button>
+</div>
+</div>
+</section>
+<aside class="side">
+<div class="stat"><div class="label">Puntuación</div><div class="value" id="score">0000</div></div>
+<div class="stat"><div class="label">Nivel</div><div class="value" id="level">1</div></div>
+<div class="stat"><div class="label">Vidas</div><div class="value" id="lives">♥ ♥ ♥</div></div>
+<div class="rules"><b>Controles</b><br>Flechas o WASD para moverte.<br><b>Objetivo</b><br>Come todos los cristales para avanzar de nivel.<br><b>Bonus</b><br>Los orbes rosas vuelven vulnerables a los drones.</div>
+<div class="actions"><button class="secondary" id="pauseBtn">PAUSAR</button><button class="secondary" id="restartBtn">REINICIAR</button></div>
+</aside>
+</div>
+<div class="mobile-controls" aria-label="Controles táctiles">
+<button data-dir="up" aria-label="Arriba">▲</button><button data-dir="left" aria-label="Izquierda">◀</button><button data-dir="down" aria-label="Abajo">▼</button><button data-dir="right" aria-label="Derecha">▶</button>
+</div>
+<footer>NEÓN MAZE · Juego individual · HTML, CSS y JavaScript</footer>
+</main>
+<script>
+(() => {
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const scoreEl=document.getElementById('score'),levelEl=document.getElementById('level'),livesEl=document.getElementById('lives');
+const overlay=document.getElementById('overlay'),overlayTitle=document.getElementById('overlayTitle'),overlayText=document.getElementById('overlayText');
+const startBtn=document.getElementById('startBtn'),pauseBtn=document.getElementById('pauseBtn'),restartBtn=document.getElementById('restartBtn');
+const TILE=30,COLS=21,ROWS=17;
+const base=[
+"#####################",
+"#.........#.........#",
+"#.###.###.#.###.###.#",
+"#o#...#... ...#...#o#",
+"#.#.#.#.#####.#.#.#.#",
+"#...#.........#...#.#",
+"###.#.###.###.#.###.#",
+"#...#.#.....#.#.....#",
+"#.###.#.###.#.###.#..#",
+"#.....#.. ..#.....#..#",
+"#.###.###.###.###.#..#",
+"#...#.........#...#..#",
+"#.#.#.#####.#.#.#.#..#",
+"#o..#...#...#...#..o.#",
+"#.###.#.#.#.#.#.###..#",
+"#.........#.........#",
+"#####################"
+];
+// Normalize accidental spaces into corridors and guarantee fixed row widths.
+const maze=base.map(r=>(r.replace(/ /g,'.').padEnd(COLS,'#').slice(0,COLS)).split(''));
+maze.forEach(row=>{row[0]='#';row[COLS-1]='#'});
+const dirs={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
+let player,ghosts,score=0,lives=3,level=1,pellets=0,powerUntil=0,running=false,paused=false,ended=false,loop=null,moveTimer=0,ghostTimer=0;
+function cloneMaze(){return maze.map(r=>r.slice())}
+let map;
+function resetLevel(){
+ map=cloneMaze();pellets=0;
+ for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)if(map[y][x]==='.'||map[y][x]==='o')pellets++;
+ player={x:1,y:1,dir:'right',next:'right'};
+ ghosts=[
+  {x:19,y:1,color:'#ff4f9a',dir:'left'},
+  {x:19,y:15,color:'#ffd166',dir:'up'},
+  {x:1,y:15,color:'#a78bfa',dir:'right'}
+ ];
+ powerUntil=0;draw();updateUI();
+}
+function updateUI(){scoreEl.textContent=String(score).padStart(4,'0');levelEl.textContent=level;livesEl.textContent='♥ '.repeat(lives).trim()||'—'}
+function wall(x,y){return x<0||y<0||x>=COLS||y>=ROWS||map[y][x]==='#'}
+function move(entity,dir){const d=dirs[dir];if(!d||wall(entity.x+d.x,entity.y+d.y))return false;entity.x+=d.x;entity.y+=d.y;entity.dir=dir;return true}
+function setDirection(dir){if(!running||paused||ended)return;player.next=dir}
+function stepPlayer(){
+ if(player.next&&move(player,player.next))player.dir=player.next;
+ else move(player,player.dir);
+ const cell=map[player.y][player.x];
+ if(cell==='.'||cell==='o'){score+=cell==='o'?50:10;map[player.y][player.x]=' ';if(cell==='o')powerUntil=Date.now()+6500;pellets--;updateUI();if(pellets<=0){if(level>=3){finish(true);return}else{level++;resetLevel();return}}}
+}
+function stepGhosts(){
+ ghosts.forEach((g,i)=>{
+  const options=Object.keys(dirs).filter(d=>{const v=dirs[d];return !wall(g.x+v.x,g.y+v.y)});
+  if(!options.length)return;
+  let choice;
+  if(Date.now()<powerUntil){choice=options[Math.floor(Math.random()*options.length)]}
+  else{
+   // Mostly chase the player, with occasional turns to keep the arcade feel.
+   options.sort((a,b)=>{const da=dirs[a],db=dirs[b];return (Math.abs(g.x+da.x-player.x)+Math.abs(g.y+da.y-player.y))-(Math.abs(g.x+db.x-player.x)+Math.abs(g.y+db.y-player.y))});
+   choice=Math.random()<.72?options[0]:options[Math.floor(Math.random()*options.length)];
+  }
+  move(g,choice);
+ });
+}
+function checkHits(){
+ for(const g of ghosts){if(g.x===player.x&&g.y===player.y){
+  if(Date.now()<powerUntil){score+=200;g.x=19;g.y=1}
+  else{lives--;updateUI();if(lives<=0){finish(false);return}player.x=1;player.y=1;player.dir='right';player.next='right';ghosts.forEach((v,i)=>{v.x=i===1?19: i===2?1:19;v.y=i===2?15:i===1?15:1});}
+ }}
+}
+function draw(){
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ ctx.fillStyle='#070b19';ctx.fillRect(0,0,canvas.width,canvas.height);
+ for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+  const px=x*TILE,py=y*TILE,c=map[y][x];
+  if(c==='#'){ctx.fillStyle='#152b59';ctx.fillRect(px+1,py+1,TILE-2,TILE-2);ctx.strokeStyle='#48e5ff';ctx.lineWidth=1;ctx.strokeRect(px+3,py+3,TILE-6,TILE-6)}
+  else if(c==='.'||c==='o'){ctx.beginPath();ctx.fillStyle=c==='o'?'#ff4f9a':'#b8f8ff';ctx.arc(px+15,py+15,c==='o'?6:2.8,0,Math.PI*2);ctx.fill()}
+ }
+ // Player
+ ctx.save();ctx.translate(player.x*TILE+15,player.y*TILE+15);ctx.rotate(({right:0,down:Math.PI/2,left:Math.PI,up:-Math.PI/2})[player.dir]||0);
+ ctx.fillStyle='#ffd166';ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,12,.22,Math.PI*2-.22);ctx.closePath();ctx.fill();ctx.restore();
+ ghosts.forEach(g=>{ctx.fillStyle=Date.now()<powerUntil?'#7ce7ff':g.color;ctx.beginPath();ctx.arc(g.x*TILE+15,g.y*TILE+14,11,Math.PI,0);ctx.lineTo(g.x*TILE+26,g.y*TILE+26);ctx.lineTo(g.x*TILE+20,g.y*TILE+22);ctx.lineTo(g.x*TILE+15,g.y*TILE+26);ctx.lineTo(g.x*TILE+10,g.y*TILE+22);ctx.lineTo(g.x*TILE+4,g.y*TILE+26);ctx.lineTo(g.x*TILE+4,g.y*TILE+14);ctx.fill();ctx.fillStyle='#07101f';ctx.fillRect(g.x*TILE+9,g.y*TILE+11,3,4);ctx.fillRect(g.x*TILE+18,g.y*TILE+11,3,4)});
+}
+function finish(win){running=false;ended=true;overlay.hidden=false;overlayTitle.textContent=win?'¡NIVEL COMPLETADO!':'FIN DEL JUEGO';overlayText.textContent=win?'¡Excelente! Has superado el laberinto.':'Te quedaste sin vidas. Tu puntuación final fue '+score+'.';startBtn.textContent='JUGAR OTRA VEZ'}
+function tick(){
+ if(!running||paused)return;
+ stepPlayer();moveTimer++;
+ if(moveTimer%Math.max(1,3-level)===0)stepGhosts();
+ checkHits();draw();updateUI();
+}
+function start(){if(ended){score=0;lives=3;level=1;ended=false;resetLevel()}overlay.hidden=true;running=true;paused=false;pauseBtn.textContent='PAUSAR';if(!loop)loop=setInterval(tick,145)}
+function restart(){score=0;lives=3;level=1;ended=false;running=false;paused=false;moveTimer=0;resetLevel();overlay.hidden=false;overlayTitle.textContent='¿Listo para jugar?';overlayText.textContent='Recoge todos los cristales, evita a los drones y consigue puntos. Los orbes especiales te dan unos segundos de ventaja.';startBtn.textContent='COMENZAR';pauseBtn.textContent='PAUSAR'}
+function togglePause(){if(!running)return;paused=!paused;pauseBtn.textContent=paused?'CONTINUAR':'PAUSAR';if(paused){overlay.hidden=false;overlayTitle.textContent='PAUSA';overlayText.textContent='Tómate un respiro. Tu partida está en pausa.';startBtn.textContent='CONTINUAR'}else{overlay.hidden=true}}
+startBtn.addEventListener('click',()=>{if(paused){paused=false;overlay.hidden=true;pauseBtn.textContent='PAUSAR'}else start()});
+pauseBtn.addEventListener('click',togglePause);restartBtn.addEventListener('click',restart);
+document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();const mapKeys={arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'};if(mapKeys[k]){e.preventDefault();setDirection(mapKeys[k])}if(k==='p'||k===' '){e.preventDefault();togglePause()}});
+document.querySelectorAll('[data-dir]').forEach(b=>{const act=()=>setDirection(b.dataset.dir);b.addEventListener('click',act);b.addEventListener('touchstart',e=>{e.preventDefault();act()},{passive:false})});
+resetLevel();
+})();
+</script>
+</body>
+</html>
